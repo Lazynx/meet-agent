@@ -64,7 +64,7 @@ docker compose up -d
 
 ---
 
-## 📄 Пример JSON-структуры `meeting_data`
+## Пример JSON-структуры `meeting_data`
 
 ```json
 {
@@ -108,4 +108,5 @@ docker compose up -d
 4. Gemini анализирует текст и извлекает ключевые темы, решения и задачи
 5. Cоздается страница в Notion
 6. Генерируется PDF-отчет и отправляется в Telegram с кратким summary и PDF
+
 
