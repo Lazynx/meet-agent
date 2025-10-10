@@ -1,0 +1,50 @@
+# Operating System files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Node.js
+node_modules/
+
+# Python
+*.pyc
+*.pyo
+*.__pycache__
+*.env
+.venv
+/venv/
+./venv
+./venv/
+
+/data/uploads/
+./data/uploads/
+# Creds
+credentials/
+/credentials/
+./credentials/
+
+# Java
+*.class
+*.jar
+*.war
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Logs
+*.log
+
+# Build and Distribution directories
+build/
+dist/
+*.bak
+
+# Environmental Files
+../.env
+
+# Other common files
+*.swp
+*.swo
