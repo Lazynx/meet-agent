@@ -100,34 +100,6 @@ docker compose up -d
 
 ---
 
-## Архитектура пайплайна
-
-```mermaid
-flowchart TD
-    A[Пользователь загружает аудиофайл] --> B[FileService]
-    B --> C[Конвертация в WAV (16kHz)]
-    C --> D[Загрузка в Google Cloud Storage]
-    D --> E[Передача GCS URI агенту]
-    E --> F[Google Speech-to-Text]
-    F --> G[Транскрипция речи → текст]
-    G --> H[Google Gemini (LLM анализ)]
-    H --> I[Генерация JSON: topics, decisions, tasks]
-    I --> J[Формирование PDF отчета (ReportLab)]
-    J --> K[Отправка PDF и summary в Telegram]
-    I --> L[Создание страницы в Notion]
-    I -->|Ошибка| M[send_failure_report → Telegram Alert]
-
-    style A fill:#6AAFE6,stroke:#fff,stroke-width:1px,color:#fff
-    style F fill:#FFD166,stroke:#fff
-    style H fill:#EF476F,stroke:#fff,color:#fff
-    style J fill:#118AB2,stroke:#fff,color:#fff
-    style K fill:#06D6A0,stroke:#fff,color:#fff
-    style L fill:#06D6A0,stroke:#fff,color:#fff
-    style M fill:#FF595E,stroke:#fff,color:#fff
-```
-
----
-
 ## Пример флоу работы
 
 1. Пользователь отправляет аудиофайл (`.m4a`, `.mp3` и т.д.) в API он его трансформирует в .wav и получает GCS uri
@@ -136,3 +108,4 @@ flowchart TD
 4. Gemini анализирует текст и извлекает ключевые темы, решения и задачи
 5. Cоздается страница в Notion
 6. Генерируется PDF-отчет и отправляется в Telegram с кратким summary и PDF
+
