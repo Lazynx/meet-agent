@@ -10,3 +10,14 @@ pipeline_failures = Counter(
     'Pipeline stage failures',
     ['stage'],
 )
+
+llm_judge_latency = Histogram(
+    'llm_judge_latency_seconds',
+    'LLM-as-judge evaluation call latency',
+)
+
+llm_calls_total = Counter(
+    'llm_calls_total',
+    'Total LLM API calls by stage',
+    ['stage'],
+)

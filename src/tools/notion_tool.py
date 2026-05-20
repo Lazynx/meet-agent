@@ -29,7 +29,7 @@ async def export_to_notion(meeting_data: dict) -> Dict:
         }
 
     except Exception as e:
-        logger.info(f'[TOOL] Notion export error: {str(e)}')
+        logger.error('[TOOL] Notion export error: %s', e, exc_info=True)
         return {
             'status': 'error',
             'error_message': f'Failed to export to Notion: {str(e)}',

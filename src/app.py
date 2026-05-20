@@ -1,4 +1,5 @@
 import logging
+import uuid
 from pathlib import Path
 
 import uvicorn
@@ -7,10 +8,13 @@ from dishka.integrations import fastapi as fastapi_integration
 from fastapi import FastAPI
 from google.adk.cli.fast_api import get_fast_api_app
 from prometheus_fastapi_instrumentator import Instrumentator
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
+from starlette.requests import Request
 
 from api.routes import router as api_router
 from core.config import Settings, settings
+from core.context import correlation_id_var
 from core.ioc import AppProvider
 from core.logging import configure_logging
 
@@ -18,6 +22,16 @@ BASE_DIR = Path(__file__).resolve().parent
 AGENT_DIR = BASE_DIR
 
 logger = logging.getLogger(__name__)
+
+
+class _CorrelationMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        cid = request.headers.get('X-Request-ID', str(uuid.uuid4()))
+        token = correlation_id_var.set(cid)
+        response = await call_next(request)
+        correlation_id_var.reset(token)
+        response.headers['X-Request-ID'] = cid
+        return response
 
 
 def create_app() -> FastAPI:
@@ -29,6 +43,7 @@ def create_app() -> FastAPI:
     )
 
     Instrumentator().instrument(app).expose(app)
+    app.add_middleware(_CorrelationMiddleware)
 
     app.add_middleware(
         CORSMiddleware,

@@ -1,3 +1,4 @@
+import asyncio
 import io
 import logging
 from datetime import datetime
@@ -12,6 +13,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from core.config import settings
+from eval.llm_judge import evaluate_meeting_quality
 from services.telegram_service import TelegramService
 
 logger = logging.getLogger(__name__)
@@ -183,13 +185,15 @@ async def send_meeting_report(meeting_data: dict) -> Dict:
             )
         )
 
+        asyncio.create_task(evaluate_meeting_quality(meeting_data))
+
         return {
             'status': 'success',
             'message': 'Report generated and sent successfully',
         }
 
     except Exception as e:
-        logger.info(f'[TOOL] Telegram sending error: {e}')
+        logger.error('[TOOL] Telegram sending error: %s', e, exc_info=True)
         return {
             'status': 'error',
             'error_message': f'{str(e)}',
@@ -199,7 +203,7 @@ async def send_meeting_report(meeting_data: dict) -> Dict:
 
 async def send_failure_report(message: str) -> Dict:
     try:
-        logger.info(f'[TOOL] Telegram sending error: {message}')
+        logger.warning('[TOOL] Pipeline failure reported: %s', message)
         telegram_service = TelegramService(
             settings.telegram.bot_token,
             settings.telegram.chat_id,
@@ -211,4 +215,5 @@ async def send_failure_report(message: str) -> Dict:
 
         return {'status': 'success', 'message': 'Failure report sent successfully'}
     except Exception as e:
+        logger.error('[TOOL] send_failure_report error: %s', e, exc_info=True)
         return {'status': 'error', 'message': str(e)}
