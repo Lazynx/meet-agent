@@ -6,6 +6,7 @@ from dishka import make_async_container
 from dishka.integrations import fastapi as fastapi_integration
 from fastapi import FastAPI
 from google.adk.cli.fast_api import get_fast_api_app
+from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.middleware.cors import CORSMiddleware
 
 from api.routes import router as api_router
@@ -27,6 +28,8 @@ def create_app() -> FastAPI:
         web=True,
     )
 
+    Instrumentator().instrument(app).expose(app)
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=['*'],
@@ -37,6 +40,7 @@ def create_app() -> FastAPI:
     fastapi_integration.setup_dishka(container, app)
 
     app.include_router(api_router)
+
 
     return app
 

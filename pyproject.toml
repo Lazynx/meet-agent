@@ -14,7 +14,9 @@ dependencies = [
     "pydantic>=2.11.9",
     "pydantic-settings>=2.11.0",
     "pydub>=0.25.1",
+    "prometheus-fastapi-instrumentator>=7.1.0",
     "reportlab>=4.4.4",
+    "tenacity>=9.1.2",
     "uvicorn>=0.37.0",
 ]
 
@@ -26,7 +28,7 @@ dev = [
 
 [tool.ruff]
 src = ["src"]
-target-version = "py311"
+target-version = "py312"
 line-length = 110
 fix = true
 lint.select = ["E", "F", "W", "C", "D", "I", "N", "Q"]

@@ -1,96 +1,96 @@
 # Meeting Protocol AI Agent (Google ADK)
 
-Автоматизированный агент для протоколирования встреч (Teams/Zoom/Meet → Notion/TG).
-Агент принимает аудиозапись встречи, выполняет транскрипцию, анализирует речь, структурирует данные и автоматически формирует отчет с задачами, решениями и ключевыми моментами.
+An automated agent for meeting documentation (Teams/Zoom/Meet → Notion/Telegram).  
+The agent receives a meeting audio recording, performs transcription, analyzes speech, structures the data, and automatically generates a report with tasks, decisions, and key highlights.
 
 ---
 
-## Основные возможности
+## Features
 
-* **Автоматическая транскрипция** аудио при помощи **Google Speech-to-Text**
-* **LLM-анализ** с помощью **Google Gemini** (через Google ADK)
-* **Создание страницы** встречи в **Notion** с темами, решениями и задачами
-* **Отправка отчета в Telegram** (PDF + краткое summary)
-* **Автоматическое уведомление об ошибках** в Telegram
-* Поддержка **форматов аудио:** `.m4a`, `.mp3`, `.wav` и др.
-* **Интеграция с GCP (Google Cloud Storage)** для хранения и передачи аудиофайлов
+- **Automatic transcription** via **Google Speech-to-Text** with speaker diarization
+- **LLM analysis** using **Google Gemini 2.0 Flash** (via Google ADK)
+- **Notion page creation** with topics, decisions, and tasks
+- **Telegram report delivery** (PDF + brief summary)
+- **Automatic error notifications** via Telegram
+- Supported **audio formats:** `.m4a`, `.mp3`, `.wav`, etc.
+- **GCP integration (Google Cloud Storage)** for audio file storage and transfer
 
 ---
 
-## Стек технологий
+## Tech Stack
 
-| Компонент                | Технология                          |
+| Component                | Technology                          |
 | ------------------------ | ----------------------------------- |
-| Агентный фреймворк       | Google ADK (Agents Development Kit) |
-| LLM / Анализ             | Gemini 2.0 Flash                    |
+| Agent framework          | Google ADK (Agents Development Kit) |
+| LLM / Analysis           | Gemini 2.0 Flash                    |
 | ASR (Speech Recognition) | Google Speech-to-Text API           |
-| Хранилище                | Google Cloud Storage (GCS)          |
+| Storage                  | Google Cloud Storage (GCS)          |
 | Backend                  | FastAPI                             |
-| Формирование PDF         | ReportLab                           |
-| Интеграции               | Aiogram API, Notion API             |
-| Контейнеризация          | Docker & Docker Compose             |
+| PDF generation           | ReportLab                           |
+| Integrations             | Aiogram (Telegram), Notion API      |
+| Containerization         | Docker & Docker Compose             |
 
 ---
 
-## Локальный запуск
+## Local Setup
 
-### Требования
+### Prerequisites
 
-* Docker & Docker Compose
-* Google Cloud credentials (с доступом к Speech-to-Text и GCS)
-* Токен Telegram-бота
-* Notion интеграция с API key и parent page ID
+- Docker & Docker Compose
+- Google Cloud credentials (with access to Speech-to-Text and GCS)
+- Telegram bot token
+- Notion integration API key and parent page ID
 
-### Установка и запуск
+### Installation & Run
 
 ```bash
 docker compose build
 docker compose up -d
 ```
 
-После запуска сервис будет доступен локально по адресу: `http://localhost:8000`
+The service will be available at `http://localhost:8000`
 
-Загрузите аудиофайл через API или веб-интерфейс. Агент автоматически:
+Upload an audio file via the API or web interface. The agent will automatically:
 
-1. Конвертирует аудио в WAV (16kHz mono)
-2. Загружает в GCS
-3. Получает `gs://` URI
-4. Транскрибирует речь через Google Speech-to-Text
-5. Передает результат в Gemini для анализа и структурирования
-6. Генерирует PDF-отчет и отправляет его в Telegram
-7. Создает страницу в Notion с результатами встречи
+1. Convert audio to WAV (16kHz mono)
+2. Upload to GCS
+3. Obtain a `gs://` URI
+4. Transcribe speech via Google Speech-to-Text
+5. Pass the transcript to Gemini for analysis and structuring
+6. Generate a PDF report and send it to Telegram with a brief summary
+7. Create a Notion page with the meeting results
 
-При ошибке на любом этапе — Telegram получит уведомление с кодом ошибки.
+On any error, Telegram receives a notification with the error stage and message.
 
 ---
 
-## Пример JSON-структуры `meeting_data`
+## Example `meeting_data` JSON
 
 ```json
 {
   "meeting_type": "team_meeting",
   "participants": {
     "active_speakers": [
-      {"name": "Аружан", "speaker_id": 0},
-      {"name": "Влад", "speaker_id": 1}
+      {"name": "Aruzhan", "speaker_id": 0},
+      {"name": "Vlad", "speaker_id": 1}
     ],
-    "mentioned": ["Артем", "Данияр"]
+    "mentioned": ["Artem", "Daniyar"]
   },
   "summary": {
-    "title": "Синк по задачам на неделю",
+    "title": "Weekly task sync",
     "topics": [
-      {"title": "Backend", "description": "Интеграция push-сервиса", "speakers": ["Влад"]}
+      {"title": "Backend", "description": "Push service integration", "speakers": ["Vlad"]}
     ],
     "decisions": [
-      {"description": "Добавить ретраи и логирование для push-сервиса", "context": "Ошибка доставки уведомлений"}
+      {"description": "Add retries and logging for push service", "context": "Notification delivery failures"}
     ],
-    "key_points": ["Необходимо улучшить стабильность push-уведомлений"]
+    "key_points": ["Push notification stability needs improvement"]
   },
   "tasks": [
     {
-      "title": "Интеграция push-сервиса",
-      "description": "Доработать push-сервис и логирование",
-      "assignee": "Артем",
+      "title": "Push service integration",
+      "description": "Finalize push service and add logging",
+      "assignee": "Artem",
       "deadline": "2025-10-15",
       "priority": "high"
     }
@@ -100,13 +100,11 @@ docker compose up -d
 
 ---
 
-## Пример флоу работы
+## Processing Flow
 
-1. Пользователь отправляет аудиофайл (`.m4a`, `.mp3` и т.д.) в API он его трансформирует в .wav и получает GCS uri
-2. Пользователь отправляет uri в агента
-3. Google Speech-to-Text выполняет распознавание речи
-4. Gemini анализирует текст и извлекает ключевые темы, решения и задачи
-5. Cоздается страница в Notion
-6. Генерируется PDF-отчет и отправляется в Telegram с кратким summary и PDF
-
-
+1. User sends an audio file (`.m4a`, `.mp3`, etc.) — the API converts it to `.wav` and returns a GCS URI
+2. User sends the URI to the agent
+3. Google Speech-to-Text performs speech recognition with speaker diarization
+4. Gemini analyzes the transcript and extracts topics, decisions, and tasks
+5. A Notion page is created with structured meeting data
+6. A PDF report is generated and sent to Telegram with a summary

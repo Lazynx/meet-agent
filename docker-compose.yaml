@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: docker/Dockerfile.dev
     ports:
-      - "8000:8000"
+      - "8080:8000"
     volumes:
       - .:/app
       - /app/.venv

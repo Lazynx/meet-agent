@@ -4,6 +4,7 @@ from typing import Dict
 
 from notion_client import AsyncClient
 from pydantic import SecretStr
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ class NotionService:
         key_points = summary.get('key_points', [])
         tasks = meeting_data.get('tasks', [])
 
-        children = list()
+        children = []
 
         children.append({
             'object': 'block',
@@ -36,7 +37,10 @@ class NotionService:
             'paragraph': {
                 'rich_text': [{
                     'text': {
-                        'content': f"Тип встречи: {meeting_type.title()} — {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+                        'content': (
+                            f"Тип встречи: {meeting_type.title()} "
+                            f"— {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+                        )
                     }
                 }]
             }
@@ -183,24 +187,28 @@ class NotionService:
                     }
                 })
 
+        page = await self._create_page(
+            parent={'page_id': self.parent_page_id},
+            properties={
+                'title': [
+                    {'text': {
+                        'content': f"{title} ({meeting_type}) — {datetime.now().strftime('%Y-%m-%d')}"
+                    }}
+                ]
+            },
+            children=children,
+        )
+        logger.info(f"[NOTION] Meeting page created: {page['id']}")
+        return page['id']
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30), reraise=True)
+    async def _create_page(self, parent: dict, properties: dict, children: list) -> dict:
         try:
-            page = await self.client.pages.create(
-                parent={'page_id': self.parent_page_id},
-                properties={
-                    'title': [
-                        {'text': {
-                            'content': f"{title} ({meeting_type}) — {datetime.now().strftime('%Y-%m-%d')}"
-                        }}
-                    ]
-                },
-                children=children
+            return await self.client.pages.create(
+                parent=parent, properties=properties, children=children
             )
-
-            logger.info(f"[NOTION] Meeting page created: {page['id']}")
-            return page['id']
-
         except Exception as e:
-            logger.error(f'[NOTION] Failed to create meeting page: {e}')
+            logger.error(f'[NOTION] Failed to create page (will retry): {e}', exc_info=True)
             raise
 
     async def close(self):

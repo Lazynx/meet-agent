@@ -8,6 +8,7 @@ import aiofiles
 from fastapi import HTTPException, UploadFile, status
 from google.cloud import storage
 from pydub import AudioSegment
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +75,7 @@ class FileService:
         gcs_uri = await self._upload_to_gcs(processed_path)
         return meeting_id, processed_path, gcs_uri
 
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30), reraise=True)
     async def _upload_to_gcs(self, file_path: str) -> str:
         try:
             filename = os.path.basename(file_path)
@@ -85,7 +87,7 @@ class FileService:
             return gcs_uri
 
         except Exception as e:
-            logger.error(f'[FileService] GCS upload failed: {e}')
+            logger.error(f'[FileService] GCS upload failed: {e}', exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f'Failed to upload to GCS: {str(e)}',

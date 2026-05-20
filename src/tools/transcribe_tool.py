@@ -2,8 +2,21 @@ import logging
 from typing import Dict
 
 from google.cloud import speech_v1p1beta1 as speech
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+from core.metrics import pipeline_failures, transcription_latency
 
 logger = logging.getLogger(__name__)
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=4, max=60), reraise=True)
+def _run_transcription(
+    client: speech.SpeechClient,
+    config: speech.RecognitionConfig,
+    audio: speech.RecognitionAudio,
+) -> speech.RecognizeResponse:
+    operation = client.long_running_recognize(config=config, audio=audio)
+    return operation.result(timeout=600)
 
 
 def transcribe_audio(gcp_uri: str) -> Dict:
@@ -11,7 +24,6 @@ def transcribe_audio(gcp_uri: str) -> Dict:
         logger.info(f'Transcribing audio: {gcp_uri}')
 
         audio = speech.RecognitionAudio(uri=gcp_uri)
-
         client = speech.SpeechClient()
 
         diarization_config = speech.SpeakerDiarizationConfig(
@@ -32,9 +44,8 @@ def transcribe_audio(gcp_uri: str) -> Dict:
         )
 
         logger.info(f'[TOOL] Starting transcription for: {gcp_uri}')
-        operation = client.long_running_recognize(config=config, audio=audio)
-
-        response = operation.result(timeout=600)
+        with transcription_latency.time():
+            response = _run_transcription(client, config, audio)
 
         result = _parse_transcription_response(response)
 
@@ -44,7 +55,8 @@ def transcribe_audio(gcp_uri: str) -> Dict:
         return result
 
     except Exception as e:
-        logger.info(f'[TOOL] Transcription error: {str(e)}')
+        logger.error(f'[TOOL] Transcription error: {str(e)}', exc_info=True)
+        pipeline_failures.labels(stage='transcribe_audio').inc()
         return {
             'status': 'error',
             'error_message': f'Transcription failed: {str(e)}',
@@ -104,7 +116,7 @@ def _parse_transcription_response(response: speech.RecognizeResponse) -> Dict:
     full_text = ' '.join([w['word'] for w in all_words])
 
     duration = all_words[-1]['end'] if all_words else 0
-    num_speakers = len(set(w['speaker'] for w in all_words))
+    num_speakers = len({w['speaker'] for w in all_words})
 
     return {
         'status': 'success',
